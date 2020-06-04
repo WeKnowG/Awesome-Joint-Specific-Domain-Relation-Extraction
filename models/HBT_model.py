@@ -1,42 +1,19 @@
-import collections
-import logging
-import json
-import math
-import os
-import random
-import pickle
-from tqdm import tqdm, trange
-import re
-
-import numpy as np
 import torch
-from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
-from torch.utils.data.distributed import DistributedSampler
 from torch import nn
-from torch.nn import NLLLoss
 from torch.nn import functional as F
-
-from Config import config_set
-from pytorch_pretrained_bert.tokenization import whitespace_tokenize, BasicTokenizer, BertTokenizer
-from pytorch_pretrained_bert.modeling import PreTrainedBertModel,BertModel,BertConfig
-from pytorch_pretrained_bert.optimization import BertAdam
-from data import read_examples, convert_examples_to_features, write_predictions
-
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
-                    datefmt='%m/%d/%Y %H:%M:%S',
-                    level=logging.INFO)
-logger = logging.getLogger(__name__)
+from pytorch_pretrained_bert.modeling import PreTrainedBertModel, BertModel
 
 
-class BERT_SPO(PreTrainedBertModel):
+class HBT(PreTrainedBertModel):
 
     def __init__(self, config):
-        super(BERT_SPO, self).__init__(config)
+        super(HBT, self).__init__(config)
         self.bert = BertModel(config)
         self.subject_head_layer = nn.Linear(config.hidden_size, 1)
         self.subject_tail_layer = nn.Linear(config.hidden_size, 1)
         self.object_head_layer = nn.Linear(config.hidden_size, config.rel_nums)
         self.object_tail_layer = nn.Linear(config.hidden_size, config.rel_nums)
+        self.apply(self.init_bert_weights)
 
     def gather_info(self, input_tensor, positions):
         batch_size, seq_len, hidden_size = input_tensor.size()
@@ -56,8 +33,8 @@ class BERT_SPO(PreTrainedBertModel):
                 gold_sub_tails=None,   # [batch_szie, seq_len]
                 gold_obj_heads=None,   # [batch, seq_len, num_rels]
                 gold_obj_tails=None,   # [batch, seq_len, num_rels]
-                is_train=True):  
-
+                is_train=True): 
+                
         sequence_output, _ = self.bert(input_ids, token_type_ids, attention_mask, output_all_encoded_layers=False)
 
         mask = attention_mask.view(-1)
