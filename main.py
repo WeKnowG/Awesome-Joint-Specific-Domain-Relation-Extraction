@@ -33,11 +33,81 @@ def warmup_linear(x, warmup=0.002):
     return 1.0 - x
 
 
-def train(**kwargs):
-    '''
-    训练
-    '''
-    pass
+def train(config, bert_config, train_path, tokenizer):
+    if os.path.exists(config.output_dir) is False:
+        os.makedirs(config.output_dir, exist_ok=True)
+    if os.path.exists('./data/train_file.pkl'):
+        train_data = pickle.load(open("./data/train_file.pkl", mode='rb'))
+    else:
+        train_data = data.load_data(train_path, tokenizer, rel2id, num_rels)
+        pickle.dump(train_data, open("./data/train_file.pkl", mode='wb'))
+
+    data_manager = data.SPO(train_data)
+    train_sampler = RandomSampler(data_manager)
+    train_data_loader = DataLoader(data_manager, sampler=train_sampler, batch_size=config.batch_size, drop_last=True)
+    num_train_steps = int(len(data_manager) / config.batch_size) * config.max_epoch
+    model = HBT(bert_config, config)
+
+    if config.bert_pretrained_model is not None:
+        logger.info('load bert weight')
+        model.bert.from_pretrained(config.bert_pretrained_model)
+
+    model.to(device)
+
+    param_optimizer = list(model.named_parameters())
+
+    # hack to remove pooler, which is not used
+    # thus it produce None grad that break apex
+    param_optimizer = [n for n in param_optimizer if 'pooler' not in n[0]]
+
+    no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
+    optimizer_grouped_parameters = [
+        {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
+        {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+        ]
+    optimizer = BertAdam(optimizer_grouped_parameters,
+                            lr=config.lr,
+                            warmup=config.warmup_proportion,
+                            t_total=num_train_steps)
+
+    # Train!
+    logger.info("***** Running training *****")
+    logger.info("  Num examples = %d", len(data_manager))
+    logger.info("  Num Epochs = %d", config.max_epoch)
+    logger.info("  Total train batch size = %d", config.batch_size)
+    logger.info("  Total optimization steps = %d", num_train_steps)
+    logger.info("  Logging steps = %d", config.print_freq)
+    logger.info("  Save steps = %d", config.save_freq)
+
+    global_step = 0
+    model.train()
+    for _ in range(config.max_epoch):
+        model.zero_grad()
+        epoch_itorator = tqdm(train_data_loader, disable=None)
+        for step, batch in enumerate(epoch_itorator):
+            batch = tuple(t.to(device) for t in batch)
+            input_ids, segment_ids, input_masks, sub_positions, sub_heads, sub_tails, obj_heads, obj_tails = batch
+            loss1, loss2 = model(input_ids, segment_ids, input_masks, sub_positions, sub_heads, sub_tails, obj_heads, obj_tails)
+            loss = loss1 + loss2
+            loss.backward()
+            lr_this_step = config.lr * warmup_linear(global_step/num_train_steps, config.warmup_proportion)
+            for param_group in optimizer.param_groups:
+                param_group['lr'] = lr_this_step
+            optimizer.step()
+            optimizer.zero_grad()
+            global_step += 1
+            if (step+1) % config.print_freq == 0:
+                logger.info("epoch : {} step: {} #### loss1: {}  loss2: {}".format(_, step, loss1.cpu().item(), loss2.cpu().item()))
+            if (global_step + 1) % config.save_freq == 0:
+                # Save a trained model
+                model_name = "pytorch_model_%d.bin" % (global_step + 1)
+                output_model_file = os.path.join(config.output_dir, model_name)
+                model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
+                torch.save(model_to_save.state_dict(), output_model_file)
+    model_name = "pytorch_model_%d.bin" % (global_step + 1)
+    output_model_file = os.path.join(config.output_dir, model_name)
+    model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
+    torch.save(model_to_save.state_dict(), output_model_file)
 
 
 def val(model, dataloader):
@@ -71,80 +141,8 @@ if __name__ == "__main__":
     id2rel, rel2id, num_rels = data.load_rel(rel_dict_path)
 
     if config.train:
-        if os.path.exists(config.output_dir):
-            os.makedirs(config.output_dir)
-        if os.path.exists('./data/train_file.pkl'):
-            train_data = pickle.load(open("./data/train_file.pkl", mode='rb'))
-        else:
-            train_data = data.load_data(train_path, tokenizer, rel2id, num_rels)
-            pickle.dump(train_data, open("./data/train_file.pkl", mode='wb'))
-
-        data_manager = data.SPO(train_data)
-        train_sampler = RandomSampler(data_manager)
-        train_data_loader = DataLoader(data_manager, sampler=train_sampler, batch_size=config.batch_size, drop_last=True)
-        num_train_steps = int(len(data_manager) / config.batch_size) * config.max_epoch
-        model = HBT(bert_config, config)
-
-        if config.bert_pretrained_model is not None:
-            logger.info('load bert weight')
-            model.bert.from_pretrained(config.bert_pretrained_model)
-
-        model.to(device)
-
-        param_optimizer = list(model.named_parameters())
-
-        # hack to remove pooler, which is not used
-        # thus it produce None grad that break apex
-        param_optimizer = [n for n in param_optimizer if 'pooler' not in n[0]]
-
-        no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
-        optimizer_grouped_parameters = [
-            {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
-            {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
-            ]
-        optimizer = BertAdam(optimizer_grouped_parameters,
-                             lr=config.lr,
-                             warmup=config.warmup_proportion,
-                             t_total=num_train_steps)
-
-        # Train!
-        logger.info("***** Running training *****")
-        logger.info("  Num examples = %d", len(data_manager))
-        logger.info("  Num Epochs = %d", config.max_epoch)
-        logger.info("  Total train batch size = %d", config.batch_size)
-        logger.info("  Total optimization steps = %d", num_train_steps)
-        logger.info("  Logging steps = %d", config.print_freq)
-        logger.info("  Save steps = %d", config.save_freq)
-
-        global_step = 0
-        model.train()
-        for _ in range(config.max_epoch):
-            model.zero_grad()
-            epoch_itorator = tqdm(train_data_loader, disable=None)
-            for step, batch in enumerate(epoch_itorator):
-                batch = tuple(t.to(device) for t in batch)
-                input_ids, segment_ids, input_masks, sub_positions, sub_heads, sub_tails, obj_heads, obj_tails = batch
-                loss1, loss2 = model(input_ids, segment_ids, input_masks, sub_positions, sub_heads, sub_tails, obj_heads, obj_tails)
-                loss = loss1 + loss2
-                loss.backward()
-                lr_this_step = config.lr * warmup_linear(global_step/num_train_steps, config.warmup_proportion)
-                for param_group in optimizer.param_groups:
-                    param_group['lr'] = lr_this_step
-                optimizer.step()
-                optimizer.zero_grad()
-                global_step += 1
-                if (step+1) % config.print_freq == 0:
-                    logger.info("epoch : {} step: {} #### loss1: {}  loss2: {}".format(_, step, loss1.cpu().item(), loss2.cpu().item()))
-                if (global_step + 1) % config.save_freq == 0:
-                    # Save a trained model
-                    model_name = "pytorch_model_%d.bin" % (global_step + 1)
-                    output_model_file = os.path.join(config.output_dir, model_name)
-                    model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
-                    torch.save(model_to_save.state_dict(), output_model_file)
-        model_name = "pytorch_model_%d.bin" % (global_step + 1)
-        output_model_file = os.path.join(config.output_dir, model_name)
-        model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
-        torch.save(model_to_save.state_dict(), output_model_file)
+        train(config, bert_config, train_path, tokenizer)
+        
     
     if config.dev:
         model_state_dict = torch.load(config.output_model_file)
