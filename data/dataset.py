@@ -38,7 +38,7 @@ def load_data(data_path, tokenizer, rel2id, num_rels, maxlen=100):
     data = [data[i] for i in random_order]
     for sent in data:
         to_tuple(sent)
-    data = process_data(data[:100], tokenizer, rel2id, num_rels, maxlen)
+    data = process_data(data, tokenizer, rel2id, num_rels, maxlen)
     return data
 
 

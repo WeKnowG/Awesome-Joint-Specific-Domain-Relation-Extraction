@@ -17,6 +17,7 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def warmup_linear(x, warmup=0.002):
     if x < warmup:
         return x/warmup
