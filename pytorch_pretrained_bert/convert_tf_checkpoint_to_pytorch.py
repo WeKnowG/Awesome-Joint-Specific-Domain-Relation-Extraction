@@ -91,18 +91,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     ## Required parameters
     parser.add_argument("--tf_checkpoint_path",
-                        default = '/home/nianxw/nxw/cmrc_nxw/chinese_L-12_H-768_A-12/bert_model.ckpt',
+                        default = '/data2/nianxw/joint_entity_relation_extraction/Awesome-Joint-Specific-Domain-Relation-Extraction/checkpoints/cased_L-12_H-768_A-12/bert_model.ckpt',
                         type = str,
                         required = True,
                         help = "Path the TensorFlow checkpoint path.")
     parser.add_argument("--bert_config_file",
-                        default = "/home/nianxw/nxw/cmrc_nxw/chinese_L-12_H-768_A-12/bert_config.json",
+                        default = "/data2/nianxw/joint_entity_relation_extraction/Awesome-Joint-Specific-Domain-Relation-Extraction/checkpoints/cased_L-12_H-768_A-12/bert_config.json",
                         type = str,
                         required = True,
                         help = "The config json file corresponding to the pre-trained BERT model. \n"
                             "This specifies the model architecture.")
     parser.add_argument("--pytorch_dump_path",
-                        default = "/home/nianxw/nxw/cmrc_nxw/chinese_L-12_H-768_A-12/pytorch_pretrained_model.bin",
+                        default = "/data2/nianxw/joint_entity_relation_extraction/Awesome-Joint-Specific-Domain-Relation-Extraction/checkpoints/cased_L-12_H-768_A-12/pytorch_pretrained_model.bin",
                         type = str,
                         required = True,
                         help = "Path to the output PyTorch model.")
