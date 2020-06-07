@@ -6,6 +6,7 @@ __pycache__/
 checkpoints
 # C extensions
 *.so
+*.pkl
 
 # Distribution / packaging
 .Python
