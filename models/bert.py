@@ -1,14 +1,15 @@
-from pytorch_pretrained_bert.modeling import PreTrainedBertModel, BertModel
+from transformers.modeling_bert import BertPreTrainedModel, BertModel
 
 
-class bert(PreTrainedBertModel):
+class Bert_model(BertPreTrainedModel):
+
     def __init__(self, config):
 
-        super(bert, self).__init__(config=config)
+        super(Bert_model, self).__init__(config)
         self.model = BertModel(config=config)
 
-    def forward(self, input_ids, token_type_ids, attention_mask):
+    def forward(self, input_ids, attention_mask, token_type_ids):
 
-        sequence_output, _ = self.model(input_ids, token_type_ids, attention_mask, output_all_encoded_layers=False)
+        outputs = self.model(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
 
-        return sequence_output
+        return outputs[0]

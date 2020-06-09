@@ -5,7 +5,7 @@ import numpy as np
 from tqdm import tqdm
 import json
 import unicodedata
-from pytorch_pretrained_bert.tokenization import whitespace_tokenize, BertTokenizer
+from transformers import BertTokenizer
 
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
@@ -53,7 +53,7 @@ def extract_items(bert, subject_model, object_model, tokenizer, text_in, id2rel,
     segment_ids = torch.tensor(segment_ids).long().cuda()
     input_mask = torch.tensor(input_mask).float().cuda()
 
-    bert_output = bert(token_ids, segment_ids, input_mask)
+    bert_output = bert(token_ids, input_mask, segment_ids)[0]
     sub_heads_logits, sub_tails_logits = subject_model(bert_output)  # [1, seq_len]
     sub_heads_logits = sub_heads_logits.cpu().numpy()
     sub_tails_logits = sub_tails_logits.cpu().numpy()
@@ -65,18 +65,19 @@ def extract_items(bert, subject_model, object_model, tokenizer, text_in, id2rel,
             sub_tail = sub_tail[0]
             subject = tokens[sub_head: sub_tail]
             subjects.append((subject, sub_head, sub_tail))  # 获取头实体信息
-    logger.info('*********lala***********')
+    # logger.info('*********lala***********')
     if subjects:
-        logger.info('**********************')
-        logger.info(len(subjects))
+        # logger.info('**********************')
+        # logger.info(len(subjects))
         triple_list = []
         positions = torch.tensor(np.array([sub[1:] for sub in subjects])).cuda()  # [len(subjects), 2]
-        obj_heads_logits, obj_tails_logits = object_model(bert_output, positions)  # [len(subjects), seq_len, num_rels]
+        bert_output_obj = bert_output.expand(len(subjects), -1, -1)
+        obj_heads_logits, obj_tails_logits = object_model(bert_output_obj, positions)  # [len(subjects), seq_len, num_rels]
         obj_heads_logits = obj_heads_logits.cpu().numpy()
         obj_tails_logits = obj_tails_logits.cpu().numpy()
 
         for i, subject in enumerate(subjects):
-            logger.info(i)
+            # logger.info(i)
             sub = subject[0]
             sub = ''.join([i.lstrip("##") for i in sub])
             sub = ' '.join(sub.split('[unused1]'))  # 还原头部实体词

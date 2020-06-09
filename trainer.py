@@ -7,7 +7,7 @@ import torch
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from transformers import BertConfig, AdamW, get_linear_schedule_with_warmup
 
-from utils import MODEL_CLASSES, compute_metrics, get_intent_labels, get_slot_labels
+from utils import MODEL_CLASSES, compute_metrics
 
 logger = logging.getLogger(__name__)
 

@@ -20,7 +20,7 @@ class obj_model(BasicModel):
         flat_offsets = torch.linspace(0, batch_size-1, steps=batch_size).long().view(-1, 1)*seq_len
         flat_positions = positions.long() + flat_offsets.cuda()
         flat_positions = flat_positions.view(-1)
-        flat_seq_tensor = input_tensor.view(batch_size*seq_len, hidden_size)
+        flat_seq_tensor = input_tensor.contiguous().view(batch_size*seq_len, hidden_size)
         output_tensor = torch.index_select(flat_seq_tensor, 0, flat_positions).view(batch_size, -1, hidden_size)
         return output_tensor
 
