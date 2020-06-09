@@ -18,6 +18,7 @@ class DefaultConfig(object):
     # bert_pretrained_model = './checkpoints/cased_L-12_H-768_A-12'  # 加载预训练的模型的路径，为None代表不加载
     bert_pretrained_model = None
     output_dir = './checkpoints/my_model'
+    output_path = './checkpoints/dev_result/res'
 
     train = True
     dev = False
@@ -28,8 +29,9 @@ class DefaultConfig(object):
     num_workers = 4  # how many workers for loading data
     print_freq = 1  # print info every N batch
     save_freq = 1000  # save model every save_freq steps
+    eval_freq = 1  #
     max_len = 100  # the max length of sentence
-
+    
     debug_file = '/tmp/debug'  # if os.path.exists(debug_file): enter ipdb
     result_file = 'result.csv'
 
@@ -39,6 +41,7 @@ class DefaultConfig(object):
 
     hidden_size = 768
     rel_nums = 24
+    initializer_range = 0.02
 
 
 def parse(self, kwargs):
