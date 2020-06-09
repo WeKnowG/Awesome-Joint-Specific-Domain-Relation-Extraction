@@ -65,10 +65,7 @@ def extract_items(bert, subject_model, object_model, tokenizer, text_in, id2rel,
             sub_tail = sub_tail[0]
             subject = tokens[sub_head: sub_tail]
             subjects.append((subject, sub_head, sub_tail))  # 获取头实体信息
-    # logger.info('*********lala***********')
     if subjects:
-        # logger.info('**********************')
-        # logger.info(len(subjects))
         triple_list = []
         positions = torch.tensor(np.array([sub[1:] for sub in subjects])).cuda()  # [len(subjects), 2]
         bert_output_obj = bert_output.expand(len(subjects), -1, -1)
@@ -144,5 +141,5 @@ def metric(bert, subject_model, object_model, eval_data, id2rel, tokenizer, exac
     recall = correct_num / gold_num
     f1_score = 2 * precision * recall / (precision + recall)
 
-    # print(f'correct_num:{correct_num}\npredict_num:{predict_num}\ngold_num:{gold_num}')
+    logger.info(f'correct_num:{correct_num}\npredict_num:{predict_num}\ngold_num:{gold_num}')
     return precision, recall, f1_score

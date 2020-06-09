@@ -18,6 +18,7 @@ class DefaultConfig(object):
     bert_pretrained_model = './checkpoints/cased_L-12_H-768_A-12/pytorch_model.bin'  # 加载预训练的模型的路径，为None代表不加载
     # bert_pretrained_model = None
     output_dir = './checkpoints/my_model'
+    load_model_name = 'pytorch_model_last'
     output_path = './checkpoints/dev_result/res'
 
     train = True

@@ -104,10 +104,10 @@ def train(config, bert_config, train_path, dev_path, rel2id, id2rel, tokenizer):
             optimizer.step()
             optimizer.zero_grad()
             global_step += 1
-            if (step+1) % config.print_freq == 0:
-                logger.info("epoch : {} step: {} #### loss1: {}  loss2: {}".format(_, step + 1, loss1.cpu().item(), loss2.cpu().item()))
+            if (global_step+1) % config.print_freq == 0:
+                logger.info("epoch : {} step: {} #### loss1: {}  loss2: {}".format(_, global_step + 1, loss1.cpu().item(), loss2.cpu().item()))
 
-            if (step + 1) % config.eval_freq == 0:
+            if (global_step + 1) % config.eval_freq == 0:
                 logger.info("***** Running evaluating *****")
                 with torch.no_grad():
                     Bert_model.eval()
@@ -142,11 +142,13 @@ def train(config, bert_config, train_path, dev_path, rel2id, id2rel, tokenizer):
 
 def dev(config, bert_config, dev_path, id2rel, tokenizer, output_path=None):
     dev_data = json.load(open(dev_path))
+    for sent in dev_data:
+        data.to_tuple(sent)
     Bert_model = BertModel(bert_config)
     submodel = sub_model(config)
     objmodel = obj_model(config)
 
-    state = torch.load(os.path.join(config.output_dir, "pytorch_model_last"))
+    state = torch.load(os.path.join(config.output_dir, config.load_model_name))
     Bert_model.load_state_dict(state['bert_state_dict'])
     submodel.load_state_dict(state['subject_state_dict'])
     objmodel.load_state_dict(state['object_state_dict'])
@@ -175,6 +177,9 @@ if __name__ == "__main__":
 
     if config.train:
         train(config, bert_config, train_path, dev_path, rel2id, id2rel, tokenizer)
+    
+    if config.dev:
+        dev(config, bert_config, dev_path, id2rel, tokenizer)
 
     # if config.dev:
     #     dev(config, bert_config, dev_path, id2rel, tokenizer)
