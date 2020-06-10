@@ -144,24 +144,26 @@ def dev(config, bert_config, dev_path, id2rel, tokenizer, output_path=None):
     dev_data = json.load(open(dev_path))
     for sent in dev_data:
         data.to_tuple(sent)
-    Bert_model = BertModel(bert_config)
-    submodel = sub_model(config)
-    objmodel = obj_model(config)
+    with torch.no_grad():
+        Bert_model = BertModel(bert_config).to(device).eval()
+        submodel = sub_model(config).to(device).eval()
+        objmodel = obj_model(config).to(device).eval()
 
-    state = torch.load(os.path.join(config.output_dir, config.load_model_name))
-    Bert_model.load_state_dict(state['bert_state_dict'])
-    submodel.load_state_dict(state['subject_state_dict'])
-    objmodel.load_state_dict(state['object_state_dict'])
+        state = torch.load(os.path.join(config.output_dir, config.load_model_name))
+        Bert_model.load_state_dict(state['bert_state_dict'])
+        submodel.load_state_dict(state['subject_state_dict'])
+        objmodel.load_state_dict(state['object_state_dict'])
 
-    precision, recall, f1 = utils.metric(Bert_model, submodel, objmodel, dev_data, id2rel, tokenizer, output_path=output_path)
-    logger.info('precision: %.4f' % precision)
-    logger.info('recall: %.4f' % recall)
-    logger.info('F1: %.4f' % f1)
+        precision, recall, f1 = utils.metric(Bert_model, submodel, objmodel, dev_data, id2rel, tokenizer, output_path=output_path)
+        logger.info('precision: %.4f' % precision)
+        logger.info('recall: %.4f' % recall)
+        logger.info('F1: %.4f' % f1)
 
 
 if __name__ == "__main__":
     config = DefaultConfig()
     device = torch.device("cuda" if config.use_gpu else "cpu")
+    logger.info(device)
 
     train_path = config.train_data_root
     dev_path = config.dev_data_root
@@ -180,6 +182,3 @@ if __name__ == "__main__":
     
     if config.dev:
         dev(config, bert_config, dev_path, id2rel, tokenizer)
-
-    # if config.dev:
-    #     dev(config, bert_config, dev_path, id2rel, tokenizer)
