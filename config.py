@@ -25,12 +25,12 @@ class DefaultConfig(object):
     dev = False
     test = False
 
-    batch_size = 4  # batch size
+    batch_size = 64  # batch size
     use_gpu = True  # use GPU or not
     num_workers = 4  # how many workers for loading data
-    print_freq = 1  # print info every N batch
+    print_freq = 10  # print info every N batch
     save_freq = 1000  # save model every save_freq steps
-    eval_freq = 1  #
+    eval_freq = 1000  #
     max_len = 100  # the max length of sentence
 
     debug_file = '/tmp/debug'  # if os.path.exists(debug_file): enter ipdb

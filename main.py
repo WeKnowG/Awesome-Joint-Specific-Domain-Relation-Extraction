@@ -167,7 +167,7 @@ if __name__ == "__main__":
 
     train_path = config.train_data_root
     dev_path = config.dev_data_root
-    # test_path = config.test_data_root
+    test_path = config.test_data_root
     # test_path = 'data/' + dataset + '/test_split_by_num/test_triples_5.json' # ['1','2','3','4','5']
     # test_path = 'data/' + dataset + '/test_split_by_type/test_triples_seo.json' # ['normal', 'seo', 'epo']
     # test_path = 'data/' + dataset + '/test_triples.json' # overall test
@@ -182,3 +182,6 @@ if __name__ == "__main__":
     
     if config.dev:
         dev(config, bert_config, dev_path, id2rel, tokenizer)
+
+    if config.test:
+        dev(config, bert_config, test_path, id2rel, tokenizer)
